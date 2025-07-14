@@ -23,7 +23,7 @@ def main() -> None:
 
     web_search_agent = Agent(
         name="Web Search Agent",
-        instructions="You are a Web Search Agent. You are given a topic and you need to perform a web search to find the most relevant and up-to-date information. Summarize the key findings clearly and concisely in 2–3 sentences. Do not include links unless explicitly requested. After completing your search, you should hand off the results to the Tweet Generator Agent.",
+        instructions="You are a Web Search Agent. You are given a topic and you need to perform a web search to find the most relevant and up-to-date information. You can specify a start and end date for your search using ISO 8601 format but get latest date from search (e.g., '2023-01-01T00:00:00.000Z'). Summarize the key findings clearly and concisely in 2–3 sentences. Do not include links unless explicitly requested. After completing your search, you should hand off the results to the Tweet Generator Agent.",
         model="gpt-4o-mini",
         tools=[web_search_tool],
         handoffs=[tweet_generator_agent]
@@ -33,7 +33,7 @@ def main() -> None:
 
     result = Runner.run_sync(
         web_search_agent,
-        "SUI blockchain news",
+        "SUI blockchain today news",
     
     )
 
