@@ -178,12 +178,14 @@ source = { editable = "." }
 dependencies = [
     { name = "exa-py" },
     { name = "python-dotenv" },
+    { name = "requests" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "exa-py", specifier = ">=1.14.16" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
+    { name = "requests", specifier = ">=2.32.4" },
 ]
 
 [[package]]
