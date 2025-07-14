@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 import os
 from datetime import datetime
 from agents import Agent, Runner, function_tool, enable_verbose_stdout_logging
-from neonet_agent.tools import web_search_tool
+from neonet_agent.tools import web_search_tool,price_and_mcap,get_coin_safety_check,get_trending_coins,get_latest_created_coins
 from pydantic import BaseModel, Field, field_validator
 
 api_key = os.getenv("OPENAI_API_KEY")
@@ -27,7 +27,7 @@ class TweetOutput(BaseModel):
         if len(v) < 10:
             raise ValueError(f'Tweet must be at least 10 characters. Current length: {len(v)}')
         return v
-
+    
 
 def main() -> None:
     current_date = datetime.now().strftime("%Y-%m-%d")
@@ -101,7 +101,8 @@ def main() -> None:
         handoffs=[web_search_agent, tweet_generator_agent],
     )
 
-    result = Runner.run_sync(manager_agent, "Find SUI blockchain news today and create a tweet")
+
+    result = Runner.run_sync(manager_agent, "bring me SUI today news")
     print(result.final_output)
 
 
