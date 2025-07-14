@@ -1,0 +1,20 @@
+[project]
+name = "neonet-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "ruwaifatahir", email = "ruwaifatahirr@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "openai-agents>=0.1.0",
+    "python-dotenv>=1.1.1",
+]
+
+[project.scripts]
+start = "neonet_agent:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
