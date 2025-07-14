@@ -95,6 +95,22 @@ wheels = [
 ]
 
 [[package]]
+name = "exa-py"
+version = "1.14.16"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "openai" },
+    { name = "pydantic" },
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bd/68/20210185644f6cbf76e27ab5be671e70e902bc7b5350781c681d1b32af19/exa_py-1.14.16.tar.gz", hash = "sha256:6404775afe9eac83fdfb8cdf558f5206164c5550e54de90502a05fe96646c508", size = 34348, upload-time = "2025-07-10T01:47:42.384Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/47/96/a75209c07e5da6b3b1baed29e1482f957067d8a20096e587a40a08232d79/exa_py-1.14.16-py3-none-any.whl", hash = "sha256:9774a5fe4113d1e4fc51cea1cfb1ae633cfcaf39d388dc54bd10b731a9524587", size = 44029, upload-time = "2025-07-10T01:47:40.916Z" },
+]
+
+[[package]]
 name = "griffe"
 version = "1.7.3"
 source = { registry = "https://pypi.org/simple" }
@@ -251,12 +267,14 @@ name = "neonet-agent"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "exa-py" },
     { name = "openai-agents" },
     { name = "python-dotenv" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "exa-py", specifier = ">=1.14.16" },
     { name = "openai-agents", specifier = ">=0.1.0" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
 ]
