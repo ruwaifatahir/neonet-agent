@@ -3,6 +3,8 @@ from neonet_agent.config import exa
 import requests
 import os
 import time
+from neonet_agent.lib.constants import stable_coins
+from neonet_agent.lib.utils import extract_symbol
 
 
 insidex_api_url = "https://api-ex.insidex.trade"
@@ -125,6 +127,46 @@ def get_top_gainers():
                 if "icon_url" in coin["coinMetadata"]:
                     del coin["coinMetadata"]["icon_url"]
         return data[:5]
+    except requests.exceptions.RequestException as e:
+        return {"error": str(e)}
+
+
+@function_tool
+def get_most_liquid_pools(limit: int = 20):
+    """Get the most liquid pools on SUI blockchain
+
+    :param limit: Number of most liquid pools to return (default 20)
+    :return: JSON response containing most liquid pools data.
+    """
+    url = f"{insidex_api_url}/pools/top-liquidity?limit={limit}&platforms=cetus,turbo"
+    headers = {"x-api-key": api_key if api_key else ""}
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+        # Filter out pools where both coins are stable coins
+        if isinstance(data, list):
+            filtered_pools = []
+            for pool in data:
+                coin_a_address = pool.get("coinA", "")
+                coin_b_address = pool.get("coinB", "")
+
+                # Extract symbols from addresses
+                coin_a_symbol = extract_symbol(coin_a_address)
+                coin_b_symbol = extract_symbol(coin_b_address)
+
+                # Check if both coins are stable coins
+                is_coin_a_stable = coin_a_symbol in stable_coins
+                is_coin_b_stable = coin_b_symbol in stable_coins
+
+                if not (is_coin_a_stable and is_coin_b_stable):
+                    filtered_pools.append(pool)
+
+            return filtered_pools
+
+        return data
     except requests.exceptions.RequestException as e:
         return {"error": str(e)}
 
