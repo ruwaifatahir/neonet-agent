@@ -1,109 +1,155 @@
 from dotenv import load_dotenv
 import os
 from datetime import datetime
-from agents import Agent, Runner, function_tool, enable_verbose_stdout_logging
-from neonet_agent.tools import web_search_tool,price_and_mcap,get_coin_safety_check,get_trending_coins,get_latest_created_coins
-from pydantic import BaseModel, Field, field_validator
+from agents import (
+    Agent,
+    Runner,
+    function_tool,
+    enable_verbose_stdout_logging,
+    SQLiteSession,
+)
+from neonet_agent.tools import (
+    get_top_gainers,
+    get_unique_buyers_count,
+    get_trade_volume,
+)
+from pydantic import BaseModel, Field
+
+load_dotenv()
+# enable_verbose_stdout_logging()
 
 api_key = os.getenv("OPENAI_API_KEY")
-load_dotenv()
-
-
 if not api_key:
     raise ValueError("OPENAI_API_KEY is not set")
 
-# enable_verbose_stdout_logging()
+session = SQLiteSession("conversation_123", "conversation_history.db")
 
 
-class TweetOutput(BaseModel):
-    tweet: str = Field(..., description="The generated tweet content")
-    character_count: int = Field(..., description="Number of characters in the tweet")
-    
-    @field_validator('tweet')
-    @classmethod
-    def validate_tweet_length(cls, v):
-        if len(v) > 280:
-            raise ValueError(f'Tweet must be 280 characters or less. Current length: {len(v)}')
-        if len(v) < 10:
-            raise ValueError(f'Tweet must be at least 10 characters. Current length: {len(v)}')
-        return v
-    
-
-def main() -> None:
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    
-    tweet_generator_agent = Agent(
-        name="Tweet Generator",
-        instructions="""
-        You are a Tweet Generator. Generate engaging tweets that summarize information.
-        
-        CRITICAL REQUIREMENTS:
-        1. The tweet content must be EXACTLY 220 characters or less
-        2. Count ONLY the tweet text - do NOT include the character count in the tweet content
-        3. Do not add "(Character count: X)" or similar text to the tweet itself
-        4. Do NOT include hashtags or emojis - plain text only
-        5. Make tweets engaging, clear, and concise using only words
-        6. Do not include links unless explicitly requested
-        
-        OUTPUT FORMAT:
-        - tweet: [your tweet content here - max 220 chars, plain text only]
-        - character_count: [actual character count]
-        
-        EXAMPLE:
-        tweet: "SUI blockchain gained 12 percent today reaching 3.90 dollars with record TVL of 2.20 billion showing strong market confidence"
-        character_count: 127
-        """,
-        model="gpt-4o-mini",
-        output_type=TweetOutput,
+class MomentumAnalysis(BaseModel):
+    coin_symbol: str = Field(..., description="The symbol of the analyzed coin")
+    analysis: str = Field(..., description="The momentum analysis findings")
+    should_post: bool = Field(
+        ..., description="Whether this coin meets high-conviction criteria"
     )
 
-    web_search_agent = Agent(
-        name="Web Search Agent",
-        instructions=f"""
-        You are a Web Search Agent. Today's date is {current_date}. 
+
+@function_tool
+def log_tweet(content: str):
+    """Log a tweet instead of posting it
+
+    :param content: The tweet content to log
+    :return: Confirmation message
+    """
+    print(f"\n--- TWEET LOG ---")
+    print(f"Content: {content}")
+    print(f"Character count: {len(content)}")
+    print(f"--- END TWEET LOG ---\n")
+    return {"status": "logged", "content": content, "character_count": len(content)}
+
+
+def main() -> None:
+    current_time = datetime.now().strftime("%I:%M %p")
+
+    # Tweet Generator Agent - Specialized for creating engaging tweets
+    tweet_generator_agent = Agent(
+        name="Tweet Generator Agent",
+        instructions="""
+        You are a specialized tweet generator for SUI momentum trading analysis.
         
-        YOUR ONLY JOB: Search for information, summarize, and handoff.
+        You will receive analysis data from the momentum agent and create an engaging tweet.
         
-        CRITICAL RULES:
-        1. You do NOT generate tweets - NEVER create tweets
-        2. You do NOT create final content  
-        3. You do NOT include emojis or hashtags in your summary
-        4. You ONLY search, summarize, and handoff
+        IMPORTANT: You should ONLY receive coins that meet strict HIGH-CONVICTION criteria:
+        - 20+ unique buyers AND $5000+ volume
+        - If you somehow receive a coin with less than 20 buyers OR less than $5000 volume, REFUSE to create a tweet
         
-        MANDATORY PROCESS:
-        1. Search for the requested information using your tool
-        2. Summarize key findings in 2-3 clear sentences
-        3. IMMEDIATELY call transfer_to_tweet_generator function - DO NOT SKIP THIS STEP
+        TWEET STYLE AND STRUCTURE:
+        - Use lowercase throughout (no caps except for coin symbols)
+        - Casual, insider tone like you're sharing alpha
+        - Start with the main narrative/thesis
+        - Include specific dollar amounts and percentages
+        - Use bullet points (•) for multiple data points when relevant
+        - End with a memorable/philosophical line
+        - No hashtags or emojis
+        - Maximum 280 characters
         
-        You MUST handoff to Tweet Generator after every search. This is not optional.
+        AVAILABLE DATA ONLY (don't make up other info):
+        - Price change percentage (from top gainers data)
+        - Number of unique buyers (from API)
+        - Trading volume in USD (from API)
+        - Timeframe (1 hour)
         
-        For date ranges: Only use when users ask for recent/current news or specific time periods.
-        For example, if today is 2025-01-14, use start_published_date='2025-01-14T00:00:00.000Z' and end_published_date='2025-01-14T23:59:59.999Z' for today's news.
+        DO NOT MENTION (we don't have this data):
+        - Liquidity levels
+        - Support/resistance levels  
+        - Market cap
+        - Technical indicators
+        - Chart patterns
+        
+        EXAMPLE STRUCTURES:
+        "$SYMBOL up X% with Y buyers and $Z volume in 1h
+        
+        • Y unique buyers moved $Z through the market
+        • price momentum building while volume confirms interest
+        • sui ecosystem plays hitting different
+        
+        sometimes the best plays happen when nobody's watching"
+        
+        OR:
+        
+        "$SYMBOL climbing X% while most sleep on sui ecosystem
+        
+        Y unique buyers pushed $Z volume past expectations. remember when small caps were just 'lottery tickets'?
+        
+        smart money doesn't announce entries, they build them"
+        
+        CRITICAL: Only create tweets for coins with 20+ buyers AND $5000+ volume
+        
+        After creating the tweet, call log_tweet() to log it.
         """,
         model="gpt-4o-mini",
-        tools=[web_search_tool],
+        tools=[log_tweet],
+    )
+
+    # Momentum Analysis Agent - Specialized for finding high-conviction plays
+    momentum_agent = Agent(
+        name="SUI Momentum Agent",
+        instructions=f"""
+        You are a specialized SUI momentum trading analyst. Current time: {current_time}
+        
+        YOUR ONLY JOB: Find high-conviction momentum plays and hand off the data.
+        
+        ANALYSIS PROCESS:
+        1. Call get_top_gainers() to find the best performing coins (get top 5)
+        2. FILTER OUT major coins: Skip any BTC, ETH, or other major cryptocurrencies - focus only on SUI ecosystem tokens
+        3. ITERATE through each remaining coin in the results list, starting with the top performer:
+           - For each coin, use the 'coin' field (the full coin address)
+           - Call get_unique_buyers_count() with the coin address and timeframe="1h"
+           - Call get_trade_volume() with the coin address and timeframe="1h"
+           - STRICT CRITERIA CHECK - A coin is HIGH-CONVICTION ONLY if BOTH conditions are met:
+             * CONDITION 1: buyers >= 20 (twenty or more unique buyers)
+             * CONDITION 2: volume >= 5000 (five thousand dollars or more in volume)
+           - If EITHER condition fails, IMMEDIATELY REJECT the coin and move to next coin
+           - If BOTH conditions pass: HANDOFF TO TWEET GENERATOR with this data format:
+             "Found high-conviction play: [SYMBOL] - Price: [change]%, Buyers: [count], Volume: $[amount], Analysis: [brief insight]"
+           - NEVER post about coins with less than 20 buyers OR less than $5000 volume
+         4. If NO coins meet BOTH criteria: conclude "No high-conviction opportunities found at {current_time}"
+         
+         CRITICAL: Your job ends when you find one good coin and hand it off, or when you've checked all coins.
+         You do NOT create tweets - that's the tweet generator's job.
+         """,
+        model="gpt-4o-mini",
+        tools=[get_top_gainers, get_unique_buyers_count, get_trade_volume],
         handoffs=[tweet_generator_agent],
     )
 
-    manager_agent = Agent(
-        name="Manager Agent",
-        instructions="""
-        You are a Manager Agent. Analyze user requests and decide the appropriate workflow.
-        
-        DECISION LOGIC:
-        - If user asks for current news, recent information, or "today's" content → handoff to Web Search Agent
-        - If user has existing content and just wants a tweet → handoff to Tweet Generator
-        - If user asks for both search and tweet → handoff to Web Search Agent (it will chain to Tweet Generator)
-        
-        Always choose the most appropriate agent based on the user's request.
-        """,
-        model="gpt-4o-mini",
-        handoffs=[web_search_agent, tweet_generator_agent],
+    result = Runner.run_sync(
+        momentum_agent,
+        f"It's {current_time}. Find and analyze a high-conviction SUI momentum play. If you find one, hand it off to the tweet generator.",
+        session=session,
+        max_turns=50,
     )
 
-
-    result = Runner.run_sync(manager_agent, "bring me SUI today news")
-    print(result.final_output)
+    print(f"\nFinal Result: {result.final_output}")
 
 
 if __name__ == "__main__":

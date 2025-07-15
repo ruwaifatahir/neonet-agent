@@ -41,3 +41,36 @@ get tweets from target users
 
 decide if should reply or not
 
+
+
+# Install openai-agents
+
+export GIT_CONFIG_GLOBAL=/c/git-config
+
+uv pip install "git+https://github.com/openai/openai-agents-python@main"
+
+
+graph TD
+    A[Scheduler<br>(e.g., every 30 mins)] --> B(<b>Orchestrator Agent</b><br>Editor-in-Chief);
+
+    subgraph "Analyst Agent Teams (The Reporters)"
+        C(<b>Momentum Analyst</b><br>Finds high-conviction pumps)
+        D(<b>Trader Analyst</b><br>Tracks smart money)
+        E(<b>DeFi Analyst</b><br>Monitors pool health)
+        F(<b>Anomaly Analyst</b><br>Spots market divergences)
+        G(<b>Capital Flow Analyst</b><br>Predicts rotations)
+    end
+    
+    B --> C;
+    B --> D;
+    B --> E;
+    B --> F;
+    B --> G;
+
+    C --> H(<b>Tweet Composer</b><br>The "Writer");
+    D --> H;
+    E --> H;
+    F --> H;
+    G --> H;
+
+    H --> I[Post Tweet];
