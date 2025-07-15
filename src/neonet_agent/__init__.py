@@ -6,23 +6,25 @@ from agents import (
     Runner,
     function_tool,
     enable_verbose_stdout_logging,
-    SQLiteSession,
+    # SQLiteSession,
 )
 from neonet_agent.tools import (
     get_top_gainers,
     get_unique_buyers_count,
     get_trade_volume,
+    get_top_trade_count,
+    get_trending_coins
 )
 from pydantic import BaseModel, Field
 
 load_dotenv()
-# enable_verbose_stdout_logging()
+enable_verbose_stdout_logging()
 
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     raise ValueError("OPENAI_API_KEY is not set")
 
-session = SQLiteSession("conversation_123", "conversation_history.db")
+# session = SQLiteSession("conversation_123", "conversation_history.db")
 
 
 class MomentumAnalysis(BaseModel):
@@ -138,14 +140,24 @@ def main() -> None:
          You do NOT create tweets - that's the tweet generator's job.
          """,
         model="gpt-4o-mini",
-        tools=[get_top_gainers, get_unique_buyers_count, get_trade_volume],
-        handoffs=[tweet_generator_agent],
+        tools=[get_top_gainers],
+        # handoffs=[tweet_generator_agent],
     )
 
+    simple_agent = Agent(
+        name="Simple Agent",
+        instructions="""
+        Your are a simple agent and you have a tool for top gainer of coins
+        """,
+        model="gpt-4o-mini",
+        tools=[get_trending_coins,get_top_gainers],
+    )
+
+
     result = Runner.run_sync(
-        momentum_agent,
-        f"It's {current_time}. Find and analyze a high-conviction SUI momentum play. If you find one, hand it off to the tweet generator.",
-        session=session,
+        simple_agent,
+        "Bring me the trending coins",
+        # session=session,
         max_turns=50,
     )
 

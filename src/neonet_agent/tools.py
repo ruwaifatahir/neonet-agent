@@ -78,7 +78,14 @@ def get_trending_coins():
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()  # Raise an exception for HTTP errors
-        return response.json()
+        data = response.json()
+        for coin in data:
+            if "coinMetadata" in coin:
+                if "iconUrl" in coin["coinMetadata"]:
+                    del coin["coinMetadata"]["iconUrl"]
+                if "icon_url" in coin["coinMetadata"]:
+                    del coin["coinMetadata"]["icon_url"]
+        return data[:5]
     except requests.exceptions.RequestException as e:
         return {"error": str(e)}
 
@@ -100,11 +107,8 @@ def get_latest_created_coins():
 
 
 @function_tool
-def get_top_gainers(timeframe: str = "4h", limit: int = 5):
+def get_top_gainers():
     """Get top gaining coins by price performance on SUI blockchain
-
-    :param timeframe: Time period for gains calculation (4h, 1h, 24h, etc.)
-    :param limit: Number of top gainers to return (default 10)
     :return: JSON response containing top gaining coins with price data
     """
     url = f"{insidex_api_url}/coins/top-gainers"
@@ -113,7 +117,14 @@ def get_top_gainers(timeframe: str = "4h", limit: int = 5):
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        for coin in data:
+            if "coinMetadata" in coin:
+                if "iconUrl" in coin["coinMetadata"]:
+                    del coin["coinMetadata"]["iconUrl"]
+                if "icon_url" in coin["coinMetadata"]:
+                    del coin["coinMetadata"]["icon_url"]
+        return data[:5]
     except requests.exceptions.RequestException as e:
         return {"error": str(e)}
 
@@ -174,6 +185,23 @@ def get_trade_volume(coin_address: str, timeframe: str = "1h"):
 
     try:
         response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        return {"error": str(e)}
+
+@function_tool
+def get_top_trade_count():
+    """Get top coins by trade count on SUI blockchain
+
+    :param timeframe: Time period for trade count calculation (4h, 1h, 24h, etc.)
+    :param limit: Number of top trade count coins to return (default 5)
+    :return: JSON response containing top trade count coins with data
+    """
+    url = f"{insidex_api_url}/coins/top-trade-count"
+    headers = {"x-api-key": api_key if api_key else ""}
+    try:
+        response = requests.get(url, headers=headers)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
