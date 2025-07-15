@@ -4,9 +4,7 @@ from datetime import datetime
 from agents import (
     Agent,
     Runner,
-    function_tool,
     enable_verbose_stdout_logging,
-    # SQLiteSession,
 )
 from neonet_agent.tools import (
     get_top_gainers,
@@ -30,39 +28,7 @@ if not api_key:
     raise ValueError("OPENAI_API_KEY is not set")
 
 
-class MomentumAnalysis(BaseModel):
-    coin_symbol: str = Field(..., description="The symbol of the analyzed coin")
-    analysis: str = Field(..., description="The momentum analysis findings")
-    should_post: bool = Field(
-        ..., description="Whether this coin meets high-conviction criteria"
-    )
-
-
-@function_tool
-def log_tweet(content: str):
-    """Log a tweet instead of posting it
-
-    :param content: The tweet content to log
-    :return: Confirmation message
-    """
-    print(f"\n--- TWEET LOG ---")
-    print(f"Content: {content}")
-    print(f"Character count: {len(content)}")
-    print(f"--- END TWEET LOG ---\n")
-    return {"status": "logged", "content": content, "character_count": len(content)}
-
-
 def main() -> None:
-
-    simple_agent = Agent(
-        name="Simple Agent",
-        instructions="""
-        You are a simple agent. You are given a task and you need to complete it.
-        """,
-        tools=[get_most_liquid_pools],
-        model="gpt-4o-mini",
-        tools=[log_tweet],
-    )
 
     simple_agent = Agent(
         name="Simple Agent",
@@ -76,7 +42,6 @@ def main() -> None:
     result = Runner.run_sync(
         simple_agent,
         "Bring me the top holder quality score",
-        # session=session,
         max_turns=50,
     )
 
