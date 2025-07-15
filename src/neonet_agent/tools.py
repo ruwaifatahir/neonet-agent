@@ -203,11 +203,9 @@ def get_unique_buyers_count(coin_address: str, timeframe: str = "1h"):
 
 
 @function_tool
-def get_trade_volume(coin_address: str, timeframe: str = "1h"):
+def get_trade_volume(coin_address: str):
     """Get the trading volume for a specific coin in a given timeframe
 
-    :param coin_address: The full address of the coin to analyze
-    :param timeframe: Time period to analyze (1h, 4h, 24h, etc.)
     :return: JSON response containing trading volume data
     """
 
@@ -223,10 +221,9 @@ def get_trade_volume(coin_address: str, timeframe: str = "1h"):
 
     url = f"{insidex_api_url}/spot-trades/{coin_address}/trade-volume"
     headers = {"x-api-key": api_key if api_key else ""}
-    params = {"startTime": start_time, "endTime": end_time}
 
     try:
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.get(url, headers=headers)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -257,6 +254,110 @@ def get_top_holder_quality_score():
     headers = {"x-api-key": api_key if api_key else ""}
     try:
         response = requests.get(url, headers=headers)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        data = response.json()
+
+        if isinstance(data, list):
+            filtered_coins = []
+            for coin_data in data:
+                coin_address = coin_data.get("coin", "")
+                coin_symbol = extract_symbol(coin_address)
+
+                if coin_symbol not in stable_coins:
+                    filtered_coins.append(coin_data)
+            return filtered_coins
+
+        return data
+    except requests.exceptions.RequestException as e:
+        return {"error": str(e)}
+
+
+@function_tool
+def complete_portfolio(wallet_address: str):
+    """
+    Fetches the complete spot portfolio for a given wallet address from the Insidex API.
+
+    :param wallet_address: The wallet address to fetch the portfolio for.
+    :return: JSON response containing the spot portfolio data, excluding icon URLs.
+    """
+    url = f"{insidex_api_url}/spot-portfolio/{wallet_address}"
+    headers = {"x-api-key": api_key if api_key else ""}
+    
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+        # If response is a dict and has a "balances" key with list
+        if isinstance(data, dict) and "balances" in data:
+            for item in data["balances"]:
+                coin_metadata = item.get("coinMetadata", {})
+                coin_metadata.pop("icon_url", None)
+                coin_metadata.pop("iconUrl", None)
+
+        return data
+
+    except requests.exceptions.RequestException as e:
+        return {"error": str(e)}
+
+@function_tool
+def get_past_trades(wallet_address: str, limit: int = 1, skip: int = 0):
+    """Fetches past trades for a given wallet address from the Insidex API.
+
+    :param wallet_address: The wallet address to fetch past trades for.
+    :param limit: The maximum number of trades to return.
+    :param skip: The number of trades to skip.
+    :return: JSON response containing past trades data.
+    """
+    url = f"{insidex_api_url}/spot-portfolio/{wallet_address}/past-trades"
+    headers = {"x-api-key": api_key if api_key else ""}
+    params = {"limit": limit, "skip": skip}
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        data = response.json()
+        return data
+    except requests.exceptions.RequestException as e:
+        return {"error": str(e)}
+
+@function_tool
+def get_spot_trade_stats(wallet_address: str):
+    """Fetches spot trade statistics for a given wallet address from the Insidex API.
+
+    :param wallet_address: The wallet address to fetch trade statistics for.
+    :return: JSON response containing spot trade statistics.
+    """
+    url = f"{insidex_api_url}/spot-portfolio/{wallet_address}/spot-trade-stats"
+    headers = {"x-api-key": api_key if api_key else ""}
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        data = response.json()
+        if isinstance(data, dict) and "coins" in data and isinstance(data["coins"], list):
+            for coin_data in data["coins"]:
+                if "coinMetadata" in coin_data:
+                    if "iconUrl" in coin_data["coinMetadata"]:
+                        del coin_data["coinMetadata"]["iconUrl"]
+                    if "icon_url" in coin_data["coinMetadata"]:
+                        del coin_data["coinMetadata"]["icon_url"]
+        return data
+    except requests.exceptions.RequestException as e:
+        return {"error": str(e)}
+
+@function_tool
+def get_most_profitable_traders(coin_address: str, limit: int = 2, skip: int = 0):
+    """Fetches the most profitable traders for a given coin address from the Insidex API.
+
+    :param coin_address: The address of the coin to analyze.
+    :param limit: The maximum number of traders to return.
+    :param skip: The number of traders to skip.
+    :return: JSON response containing most profitable traders data.
+    """
+    url = f"{insidex_api_url}/spot-trades/{coin_address}/most-profitable-traders"
+    headers = {"x-api-key": api_key if api_key else ""}
+    params = {"limit": limit, "skip": skip}
+    try:
+        response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()  # Raise an exception for HTTP errors
         return response.json()
     except requests.exceptions.RequestException as e:

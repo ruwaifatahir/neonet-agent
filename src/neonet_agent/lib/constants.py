@@ -10,4 +10,8 @@ stable_coins = {
     "coin",
     "scallop_usdc",
     "scallop_wormhole_usdt",
+    "scallop_deep",
+    "scallop_sca",
+    "scallop_sui",
+    "scallop_sb_eth",
 }
