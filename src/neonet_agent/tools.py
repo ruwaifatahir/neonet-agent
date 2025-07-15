@@ -194,8 +194,6 @@ def get_trade_volume(coin_address: str, timeframe: str = "1h"):
 def get_top_trade_count():
     """Get top coins by trade count on SUI blockchain
 
-    :param timeframe: Time period for trade count calculation (4h, 1h, 24h, etc.)
-    :param limit: Number of top trade count coins to return (default 5)
     :return: JSON response containing top trade count coins with data
     """
     url = f"{insidex_api_url}/coins/top-trade-count"
@@ -203,6 +201,21 @@ def get_top_trade_count():
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        return {"error": str(e)}
+
+@function_tool
+def get_top_holder_quality_score():
+    """Get top coins by holder quality score from the Insidex API.
+
+    :return: JSON response containing top holder quality score data.
+    """
+    url = f"{insidex_api_url}/coins/top-holder-quality-score"
+    headers = {"x-api-key": api_key if api_key else ""}
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()  # Raise an exception for HTTP errors
         return response.json()
     except requests.exceptions.RequestException as e:
         return {"error": str(e)}

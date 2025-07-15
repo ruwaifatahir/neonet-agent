@@ -13,7 +13,8 @@ from neonet_agent.tools import (
     get_unique_buyers_count,
     get_trade_volume,
     get_top_trade_count,
-    get_trending_coins
+    get_trending_coins,
+    get_top_holder_quality_score,
 )
 from pydantic import BaseModel, Field
 
@@ -150,13 +151,13 @@ def main() -> None:
         Your are a simple agent and you have a tool for top gainer of coins
         """,
         model="gpt-4o-mini",
-        tools=[get_trending_coins,get_top_gainers],
+        tools=[get_top_holder_quality_score],
     )
 
 
     result = Runner.run_sync(
         simple_agent,
-        "Bring me the trending coins",
+        "Bring me the top holder quality score",
         # session=session,
         max_turns=50,
     )
